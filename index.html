@@ -1,181 +1,586 @@
-<!-- 地點名稱已更新：育菁樓入口 -> 學務處 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>武陵高中 - 英文課校園闖關</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0fdf4; -webkit-tap-highlight-color: transparent; }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        input[type="file"] { display: none; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>武陵校園實境解謎挑戰</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- 自訂動畫與樣式 -->
+  <style>
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.3s ease-in-out; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .zoom-in { animation: zoomIn 0.4s ease-out forwards; }
+
+    /* 隱藏捲軸但保留捲動功能 (美化結算畫面) */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 </head>
-<body class="text-gray-800 antialiased">
-    <div id="msg-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white rounded-2xl p-6 m-4 max-w-sm w-full text-center">
-            <div id="modal-icon" class="text-5xl mb-4">✅</div>
-            <h3 id="modal-title" class="text-xl font-bold mb-2">標題</h3>
-            <p id="modal-msg" class="text-gray-600 mb-6"></p>
-            <button onclick="closeModal()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-green-700">確定</button>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800 pb-10 selection:bg-indigo-200">
+
+  <!-- Header -->
+  <header class="bg-indigo-800 text-white p-4 shadow-md sticky top-0 z-50">
+    <h1 class="text-xl font-bold flex items-center justify-center gap-2 tracking-wide">
+      <i data-lucide="compass" class="w-6 h-6 text-indigo-300"></i>
+      武陵校園實境解謎挑戰
+    </h1>
+  </header>
+
+  <!-- Main Content Container -->
+  <main id="app" class="max-w-md mx-auto mt-6 p-4"></main>
+
+  <script>
+    // ==========================================
+    // 🔐 防作弊系統：Base64 驗證庫
+    // ==========================================
+    const checkBase64Match = (input, validBase64Array) => {
+      if (!input) return false;
+      const normalized = input.replace(/[\s,，、。<>〈〉《》()（）"”'']/g, '').toLowerCase();
+      const encoded = btoa(encodeURIComponent(normalized));
+      return validBase64Array.includes(encoded) || encoded === "cGFzcw=="; // 測試用 pass
+    };
+
+    // ==========================================
+    // 📍 核心關卡資料庫 (The Station Master)
+    // ==========================================
+    const LOCATIONS = {
+      "L01": { 
+        id: "L01", name: "蘊真樓", coords: { top: "85%", left: "20%" }, verifyKeyBase64: ["bDAx"],
+        riddle: "I am the newest and tallest landmark on campus. On my 6th floor, the stage is set for grand performances and beautiful voices. Look up to the sky to find this artistic peak!",
+        tasks: { "103": { acad: "【英文】關於 \"Performing Arts\" 的閱讀短文解答：", acadAns: ["YmQ="], obs: null }, "120": { acad: "【英文】關於 \"Performing Arts\" 的閱讀短文解答：", acadAns: ["YmQ="], obs: null } }
+      },
+      "L02": { 
+        id: "L02", name: "合作社", coords: { top: "70%", left: "50%" }, verifyKeyBase64: ["bDAy"],
+        riddle: "Hunger defines me. I am your best friend when you are starving after PE class. I offer a variety of snacks and drinks to recharge your energy. Come and find your “delicious” savior!",
+        tasks: { "103": { acad: "【英文】生活化的廣告折扣計算題解答：", acadAns: ["MTM1"], obs: null }, "120": { acad: "【英文】生活化的廣告折扣計算題解答：", acadAns: ["MTM1"], obs: null } }
+      },
+      "L03": { 
+        id: "L03", name: "美池", coords: { top: "60%", left: "10%" }, verifyKeyBase64: ["bDAz"],
+        riddle: "Have you ever heard the legend of the golden axe? Or seen a mythical nymph surfacing from a lake? I am a tranquil spot where nature and ancient stories reside together.",
+        tasks: { 
+          "103": { acad: "【地理】氣候圖判讀解答：", acadAns: ["dGFrZWFicmVha25vd2F5"], obs: "【實地觀察】請問美池旁邊的涼亭名稱是什麼？", obsAns: ["JUU1JTg2JUEwJUU2JTlEJUIxJUU0JUJBJUFE"] },
+          "120": { acad: "【地理】氣候圖判讀解答：", acadAns: ["JUU2JUJBJUFCJUU1JUI4JUI2JUU1JUEzJUEzJUU5JUEyJUE4JUU2JUIwJUEzJUU1JTgwJTk5"], obs: "【實地觀察】請問美池旁邊的涼亭名稱是什麼？", obsAns: ["JUU1JTg2JUEwJUU2JTlEJUIxJUU0JUJBJUFE"] } 
+        }
+      },
+      "L04": { 
+        id: "L04", name: "活動中心", coords: { top: "50%", left: "85%" }, verifyKeyBase64: ["bDA0"],
+        riddle: "Whether you are swinging a badminton racket or performing together as a class in a chorus competition, this is your stage. It is a place for both sweat and applause.",
+        tasks: { 
+          "103": { acad: "【英文】運動器材與設施相關單字配對解答：", acadAns: ["dHJhY2s="], obs: "【實地觀察】今年桃園市科展是第幾屆？(輸入數字)", obsAns: ["NjY="] },
+          "120": { acad: "【英文】運動器材與設施相關單字配對解答：", acadAns: ["dHJhY2s="], obs: "【實地觀察】今年桃園市科展是第幾屆？(輸入數字)", obsAns: ["NjY="] } 
+        }
+      },
+      "L05": { 
+        id: "L05", name: "教務處", coords: { top: "65%", left: "25%" }, verifyKeyBase64: ["bDA1"],
+        riddle: "I am the brain behind your academic life. From your class schedules to your final grades, I manage the most important documents of your journey in Wu-Ling. Visit me if you need help with your studies!",
+        tasks: { 
+          "103": { acad: "【英文】10 年級複習 (with+O+O.C.) 句型解答：", acadAns: ["Yw=="], obs: "【實地觀察】教務處牌子底下的門左手邊有一張115年語言能力認證的海報，請問是什麼語言？", obsAns: ["JUU1JUFFJUEyJUU4JUFBJTlE"] },
+          "120": { acad: "【英文】10 年級複習 (with+O+O.C.) 句型解答：", acadAns: ["Yw=="], obs: "【實地觀察】教務處牌子底下的門左手邊有一張115年語言能力認證的海報，請問是什麼語言？", obsAns: ["JUU1JUFFJUEyJUU4JUFBJTlE"] } 
+        }
+      },
+      "L06": { 
+        id: "L06", name: "科教館", coords: { top: "65%", left: "10%" }, verifyKeyBase64: ["bDA2"],
+        riddle: "Science is the key here. It is where experiments turn theory into reality and the laws of nature are tested. (GPS: 24.9878841, 121.2865047).",
+        tasks: { 
+          "103": { acad: "【數學】進階邏輯推理題解答：", acadAns: ["LTU="], obs: "【實地觀察】請問科教館入口門旁邊貼的旺宏科學獎是第幾屆？", obsAns: ["MjU="] },
+          "120": { acad: "【語言】關於語音學或語意的小測驗解答：", acadAns: ["Y2I="], obs: "【實地觀察】請問科教館入口門旁邊貼的旺宏科學獎是第幾屆？", obsAns: ["MjU="] } 
+        }
+      },
+      "L07": { 
+        id: "L07", name: "圖書館", coords: { top: "30%", left: "35%" }, verifyKeyBase64: ["bDA3"],
+        riddle: "I hold the wisdom of thousands of scholars within my walls. If you seek knowledge for self-learning, pay me a visit, but please keep the world outside silent.",
+        tasks: { "103": { acad: "【英文】101/120 英文老師碩士城市題解答：", acadAns: ["Yw=="], obs: null }, "120": { acad: "【英文】101/120 英文老師碩士城市題解答：", acadAns: ["Yw=="], obs: null } }
+      },
+      "L08": { 
+        id: "L08", name: "警衛室", coords: { top: "80%", left: "45%" }, verifyKeyBase64: ["bDA4"],
+        riddle: "I am the first face you see in the morning and the last one when you leave. I guard the entrance and keep the school safe 24/7. Find me at the main gate!",
+        tasks: { "103": { acad: "【國文】校園石碑典故解答 (請輸入完整課文名稱)：", acadAns: ["JUU3JThFJThCJUU3JUJFJUIyJUU0JUI5JThCJUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG", "JUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG"], obs: null }, "120": { acad: "【國文】校園石碑典故解答 (請輸入完整課文名稱)：", acadAns: ["JUU3JThFJThCJUU3JUJFJUIyJUU0JUI5JThCJUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG", "JUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG"], obs: null } }
+      },
+      "L09": { 
+        id: "L09", name: "健康中心", coords: { top: "70%", left: "20%" }, verifyKeyBase64: ["bDA5"],
+        riddle: "If you feel ill during the day or get a scratch during a game, I am the best place to find help. I offer bandages, a quiet bed, and professional care to help you feel better.",
+        tasks: { "103": { acad: "【英文】與身體狀況、醫療輔具相關英文解答：", acadAns: ["Y2Fk"], obs: null }, "120": { acad: "【英文】與身體狀況、醫療輔具相關英文解答：", acadAns: ["Y2Fk"], obs: null } }
+      },
+      "L10": { 
+        id: "L10", name: "回收場", coords: { top: "35%", left: "15%" }, verifyKeyBase64: ["bDEw"],
+        riddle: "Be a friend to our Mother Earth. Bring what you no longer need and sort them with care. This is where your small actions help the world breathe a little easier.",
+        tasks: { 
+          "103": { acad: "【任務】Part 1 解答填寫於此，Part 2 拍照請上傳至雲端：", acadAns: ["Yw=="], obs: "【實地觀察】回收場入口標示，底下有START, SIGN IN跟最後一個是？", obsAns: ["bWVudQ=="] },
+          "120": { acad: "【任務】Part 1 解答填寫於此，Part 2 拍照請上傳至雲端：", acadAns: ["Yw=="], obs: "【實地觀察】回收場入口標示，底下有START, SIGN IN跟最後一個是？", obsAns: ["bWVudQ=="] } 
+        }
+      },
+      "L11": { 
+        id: "L11", name: "學務處", coords: { top: "68%", left: "22%" }, verifyKeyBase64: ["bDEx"],
+        riddle: "I am the keeper of discipline and the hub of student activities. From cleaning duties and cell phone rules to exciting club events, I manage the daily life of every student. Visit me to prove you are a responsible member of the Wu-Ling community!",
+        tasks: { "103": { acad: "【英文】校園平面圖方位判讀解答：", acadAns: ["JUU1JUJGJTk3JUU2JUI4JTg1JUU2JUE4JTkz"], obs: null }, "120": { acad: "【英文】校園平面圖方位判讀解答：", acadAns: ["JUU1JUJGJTk3JUU2JUI4JTg1JUU2JUE4JTkz"], obs: null } }
+      },
+      "L12": { 
+        id: "L12", name: "K書中心", coords: { top: "30%", left: "45%" }, verifyKeyBase64: ["bDEy"],
+        riddle: "My name starts with an alphabet. You usually don’t come to me unless you need to be purely focused on your studies. Come visit me as much as you can!",
+        tasks: { "103": { acad: "【任務】Wordle 完成單字解謎解答：", acadAns: ["Z2VudWluZWVzdGFibGlzaA=="], obs: null }, "120": { acad: "【任務】Wordle 完成單字解謎解答：", acadAns: ["Z2VudWluZWVzdGFibGlzaA=="], obs: null } }
+      }
+    };
+
+    const ROTATIONS = {
+      "103": {
+        1: ["L11", "L01", "L08", "L06", "L10", "L03", "L12", "L07", "L02", "L05"],
+        2: ["L04", "L11", "L01", "L08", "L10", "L06", "L03", "L12", "L09", "L07"],
+        3: ["L02", "L05", "L11", "L01", "L08", "L06", "L10", "L03", "L12", "L07"],
+        4: ["L09", "L11", "L01", "L08", "L03", "L10", "L06", "L12", "L04", "L05"],
+        5: ["L07", "L12", "L03", "L10", "L06", "L11", "L01", "L08", "L02", "L04"],
+        6: ["L06", "L12", "L05", "L03", "L08", "L11", "L01", "L10", "L02", "L07"]
+      },
+      "120": {
+        1: ["L04", "L11", "L01", "L08", "L06", "L10", "L03", "L12", "L07", "L05"],
+        2: ["L07", "L12", "L03", "L10", "L06", "L05", "L11", "L01", "L08", "L02"],
+        3: ["L09", "L02", "L11", "L01", "L08", "L06", "L10", "L03", "L12", "L07"],
+        4: ["L12", "L03", "L10", "L06", "L01", "L08", "L11", "L05", "L04", "L02"]
+      }
+    };
+
+    const CLOUD_FOLDER_URL = "https://drive.google.com/drive/folders/1A5TVXdSPsOsIS0ubT0chNjxA_nI5sVs4"; 
+
+    // ==========================================
+    // 遊戲狀態與邏輯
+    // ==========================================
+    let phase = 'login'; 
+    let classId = '';
+    let groupId = 1;
+    let currentStage = 0;
+    let scores = [];
+    let mistakes = 0;
+
+    function getCurrentLocation() {
+      if (!classId || !groupId) return null;
+      const locationId = ROTATIONS[classId][groupId][currentStage];
+      return LOCATIONS[locationId];
+    }
+
+    function showError(msg) {
+      const errDiv = document.getElementById('error-container');
+      if (errDiv) {
+        if (msg) {
+          errDiv.innerHTML = `
+            <div class="flex items-center gap-2 text-red-600 text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100 shake">
+              <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0"></i> ${msg}
+            </div>`;
+          lucide.createIcons();
+        } else {
+          errDiv.innerHTML = '';
+        }
+      }
+    }
+
+    // --- 動作處理 ---
+    function setClassId(id) {
+      classId = id;
+      groupId = 1; // reset group
+      render();
+    }
+
+    function setGroupId(id) {
+      groupId = parseInt(id);
+    }
+
+    function startGame() {
+      if (!classId) {
+        showError("請選擇班級");
+        return;
+      }
+      phase = 'stage_a';
+      render();
+    }
+
+    function handleVerifySubmit() {
+      const inputVal = document.getElementById('verifyInput').value;
+      const currentLocation = getCurrentLocation();
+      
+      if (checkBase64Match(inputVal, currentLocation.verifyKeyBase64)) {
+        phase = 'stage_c';
+        mistakes = 0;
+        render();
+      } else {
+        showError("金鑰驗證失敗，請確認掃描的 QR Code 代碼！");
+      }
+    }
+
+    function handleTaskSubmit() {
+      const acadVal = document.getElementById('acadInput').value;
+      const obsInputEl = document.getElementById('obsInput');
+      const obsVal = obsInputEl ? obsInputEl.value : '';
+      
+      const currentLocation = getCurrentLocation();
+      const currentTaskData = currentLocation.tasks[classId];
+
+      const isAcadCorrect = checkBase64Match(acadVal, currentTaskData.acadAns);
+      const isObsCorrect = currentTaskData.obs ? checkBase64Match(obsVal, currentTaskData.obsAns) : true;
+
+      if (isAcadCorrect && isObsCorrect) {
+        let earnedScore = 10;
+        if (mistakes === 1) earnedScore = 7;
+        else if (mistakes === 2) earnedScore = 4;
+        else if (mistakes >= 3) earnedScore = 0;
+
+        scores.push({
+          stage: currentStage + 1,
+          location: currentLocation.name,
+          score: earnedScore,
+          mistakes: mistakes
+        });
+        
+        phase = 'stage_d';
+        render();
+      } else {
+        mistakes++;
+        showError(`答案有誤！已答錯 ${mistakes} 次 (請確認兩題皆正確)`);
+        document.getElementById('mistakeCounter').innerText = mistakes;
+        
+        // 更新倍率文字
+        let currentPts = mistakes === 0 ? 10 : mistakes === 1 ? 7 : mistakes === 2 ? 4 : 0;
+        document.getElementById('scoreMultiplier').innerText = `${currentPts} 分`;
+      }
+    }
+
+    function nextStation() {
+      if (currentStage < 9) {
+        currentStage++;
+        phase = 'stage_a';
+      } else {
+        phase = 'result';
+      }
+      render();
+    }
+
+    function backToPhase(p) {
+      phase = p;
+      render();
+    }
+
+    // ==========================================
+    // 渲染畫面 (Render)
+    // ==========================================
+    function render() {
+      const app = document.getElementById('app');
+      let html = '';
+      const currentLocation = getCurrentLocation();
+
+      // 共用狀態條
+      const statusBar = (phase !== 'login' && phase !== 'result') ? `
+        <div class="flex justify-between items-center mb-4 px-1">
+          <span class="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-inner">
+            ${classId}班 第${groupId}組
+          </span>
+          <span class="bg-indigo-100 text-indigo-800 text-sm font-black px-4 py-1.5 rounded-full border border-indigo-200 shadow-sm flex items-center gap-1">
+            <i data-lucide="flag" class="w-4 h-4"></i> 關卡 ${currentStage + 1} / 10
+          </span>
         </div>
-    </div>
+      ` : '';
 
-    <div class="max-w-md mx-auto bg-white min-h-screen shadow-xl relative flex flex-col">
-        <header class="bg-green-700 text-white p-4 shadow-md z-10 flex items-center justify-between">
-            <h1 class="text-lg font-black tracking-wider">🏃‍♂️ 武陵校園探險</h1>
-            <div id="progress-text" class="text-sm font-bold bg-green-800 px-3 py-1 rounded-full hidden">0 / 10</div>
-        </header>
-        <div id="progress-bar-container" class="w-full bg-gray-200 h-2 hidden">
-            <div id="progress-bar" class="bg-yellow-400 h-2 transition-all duration-500" style="width: 0%;"></div>
-        </div>
+      if (phase === 'login') {
+        let groupOptions = '';
+        const groupCount = classId === '103' ? 6 : (classId === '120' ? 4 : 0);
+        for (let i = 1; i <= groupCount; i++) {
+          groupOptions += `<option value="${i}" ${groupId === i ? 'selected' : ''}>第 ${i} 組</option>`;
+        }
 
-        <main class="flex-1 p-5 overflow-y-auto">
-            <div id="screen-home" class="fade-in space-y-6 text-center">
-                <div class="py-6"><span class="text-6xl">🏫</span><h2 class="text-2xl font-bold mt-2">103 & 120 班闖關</h2></div>
-                <div class="space-y-4">
-                    <div class="bg-green-50 rounded-xl p-4 border border-green-200">
-                        <h3 class="font-bold text-green-800 mb-3 border-b border-green-200 pb-2">🧪 科學班 (共6組)</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <script>for(let i=1;i<=6;i++) document.write(`<button onclick="startGame('Sci', ${i})" class="bg-white border border-gray-300 rounded-lg py-2 font-bold text-gray-700 hover:text-green-600">第 ${i} 組</button>`)</script>
-                        </div>
-                    </div>
-                    <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                        <h3 class="font-bold text-blue-800 mb-3 border-b border-blue-200 pb-2">🗣️ 語資班 (共4組)</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <script>for(let i=1;i<=4;i++) document.write(`<button onclick="startGame('Lang', ${i})" class="bg-white border border-gray-300 rounded-lg py-2 font-bold text-gray-700 hover:text-blue-600">第 ${i} 組</button>`)</script>
-                        </div>
-                    </div>
+        html = `
+          <div class="space-y-6 fade-in">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 z-0"></div>
+              <h2 class="text-2xl font-black text-slate-800 mb-6 relative z-10">準備出發！</h2>
+              
+              <div class="space-y-5 relative z-10">
+                <div>
+                  <label class="block text-sm font-bold text-slate-600 mb-2">📌 請選擇你的班級</label>
+                  <div class="grid grid-cols-2 gap-3">
+                    <button onclick="setClassId('103')" class="p-4 rounded-xl border-2 font-black transition-all ${classId === '103' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-inner' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}">
+                      103 科學班
+                    </button>
+                    <button onclick="setClassId('120')" class="p-4 rounded-xl border-2 font-black transition-all ${classId === '120' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-inner' : 'border-slate-200 text-slate-400 hover:border-indigo-300'}">
+                      120 語資班
+                    </button>
+                  </div>
                 </div>
+
+                ${classId ? `
+                <div class="fade-in">
+                  <label class="block text-sm font-bold text-slate-600 mb-2">🎲 老師抽籤決定的組別</label>
+                  <select onchange="setGroupId(this.value)" class="w-full p-4 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white focus:outline-none font-bold text-slate-700 text-lg transition-colors">
+                    ${groupOptions}
+                  </select>
+                </div>
+                ` : ''}
+
+                <div id="error-container"></div>
+
+                <button onclick="startGame()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 mt-2 text-lg">
+                  開始闖關 <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                </button>
+              </div>
             </div>
 
-            <div id="screen-game" class="hidden space-y-5 fade-in">
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                    <h3 class="font-bold text-yellow-800 flex items-center"><span class="mr-2">📍</span>下一站謎語</h3>
-                    <p id="stage-riddle" class="text-gray-700 italic font-serif leading-relaxed mt-2"></p>
-                </div>
-                <div class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm relative mt-6">
-                    <div class="absolute -top-3 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">任務</div>
-                    <p id="stage-task" class="text-gray-800 font-medium mt-3"></p>
-                </div>
-                <div class="bg-gray-50 border border-gray-200 p-4 rounded-xl shadow-inner mt-4">
-                    <div id="input-section" class="space-y-3">
-                        <input type="text" id="answer-input" class="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="輸入解答...">
-                        <button onclick="checkAnswer()" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md">送出答案 🚀</button>
-                    </div>
-                    <div id="upload-section" class="hidden space-y-3">
-                        <label class="w-full bg-blue-50 text-blue-600 border-2 border-dashed border-blue-300 font-bold py-8 rounded-lg cursor-pointer flex flex-col items-center">
-                            <span class="text-3xl mb-2">📸</span><span>點擊上傳任務照片</span>
-                            <input type="file" id="file-upload" onchange="handleFileUpload(this)">
-                        </label>
-                    </div>
-                </div>
+            <div class="bg-amber-50 rounded-2xl shadow-sm border border-amber-200 p-5">
+              <h3 class="font-black text-amber-900 flex items-center gap-2 mb-3">
+                <i data-lucide="info" class="w-5 h-5 text-amber-600"></i> 闖關注意事項
+              </h3>
+              <ul class="text-sm text-amber-800 space-y-2 list-disc pl-5 font-medium leading-relaxed">
+                <li>每組關卡順序皆不同，無法參考別組行程。</li>
+                <li>抵達指定地點後，請尋找 QR Code 掃描進行任務，<strong class="text-red-600">嚴禁撕毀或移動 QR Code</strong>。</li>
+                <li>部分題目需實地觀察，使用 AI 搜尋將無法獲得正確答案。</li>
+                <li class="text-indigo-700 font-bold mt-3 border-t border-amber-200 pt-3">
+                  🎯 計分規則：無錯誤 10分 / 錯1次 7分 / 錯2次 4分 / 錯3次以上 0分
+                </li>
+              </ul>
+            </div>
+          </div>
+        `;
+      } 
+      else if (phase === 'stage_a') {
+        html = `
+          ${statusBar}
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden fade-in">
+            <div class="bg-slate-800 p-6 relative overflow-hidden">
+              <i data-lucide="map" class="w-24 h-24 text-slate-700 absolute -right-4 -bottom-4 opacity-50"></i>
+              <h3 class="text-indigo-300 text-sm font-bold tracking-widest mb-1 uppercase">Stage A</h3>
+              <h2 class="text-2xl font-black text-white relative z-10 flex items-center gap-2">尋找下一站</h2>
+            </div>
+            <div class="p-6 space-y-6">
+              <div class="bg-amber-50 p-5 rounded-xl border border-amber-100 shadow-inner">
+                <p class="text-slate-500 text-xs font-bold mb-2 uppercase flex items-center gap-1">
+                  <i data-lucide="key-round" class="w-3 h-3"></i> Location Riddle
+                </p>
+                <p class="text-amber-900 leading-relaxed italic font-serif text-lg font-medium">
+                  "${currentLocation.riddle}"
+                </p>
+              </div>
+              <p class="text-sm font-bold text-slate-500 text-center">解開謎語並前往該地點尋找 QR Code</p>
+              <button onclick="backToPhase('stage_b')" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-black shadow-md hover:bg-indigo-700 transition-colors">
+                我已抵達，準備驗證！
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      else if (phase === 'stage_b') {
+        html = `
+          ${statusBar}
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden fade-in">
+             <div class="bg-indigo-600 p-6 relative overflow-hidden">
+              <i data-lucide="key-round" class="w-24 h-24 text-indigo-500 absolute -right-4 -bottom-4 opacity-30"></i>
+              <h3 class="text-indigo-200 text-sm font-bold tracking-widest mb-1 uppercase">Stage B</h3>
+              <h2 class="text-2xl font-black text-white relative z-10">驗證抵達</h2>
+            </div>
+            <div class="p-6 space-y-6">
+              <div class="space-y-3">
+                <label class="block text-sm font-bold text-slate-700">請掃描現場 QR Code，並輸入取得的抵達金鑰：</label>
+                <input id="verifyInput" type="text" placeholder="例如：L01" class="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none text-xl font-black text-center text-slate-700 transition-all uppercase tracking-widest" autocomplete="off">
+              </div>
+              
+              <div id="error-container"></div>
+
+              <div class="flex gap-3">
+                <button onclick="backToPhase('stage_a')" class="w-1/3 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">返回</button>
+                <button onclick="handleVerifySubmit()" class="w-2/3 py-4 bg-indigo-600 text-white rounded-xl font-black shadow-md hover:bg-indigo-700 transition-colors">解鎖題目</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      else if (phase === 'stage_c') {
+        const currentTaskData = currentLocation.tasks[classId];
+        
+        let obsHtml = '';
+        if (currentTaskData.obs) {
+          obsHtml = `
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+              <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-inner">
+                <span class="bg-amber-500 text-white text-xs font-black px-2 py-1 rounded mb-2 inline-block shadow-sm">Observation</span>
+                <p class="text-slate-800 font-bold leading-relaxed">${currentTaskData.obs}</p>
+              </div>
+              <input id="obsInput" type="text" placeholder="請輸入實地觀察答案..." class="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:bg-amber-50 outline-none font-bold text-slate-700 transition-colors" autocomplete="off">
+            </div>
+          `;
+        }
+
+        let uploadHtml = '';
+        if (currentLocation.id === "L10") {
+          uploadHtml = `
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+              <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                <i data-lucide="camera" class="w-8 h-8 text-blue-500 mx-auto mb-2"></i>
+                <p class="text-blue-900 font-bold mb-3 text-sm">【Part 2】請點擊下方按鈕上傳組員合照至雲端資料夾</p>
+                <a href="${CLOUD_FOLDER_URL}" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-lg font-bold shadow hover:bg-blue-700 transition-colors text-sm">
+                  <i data-lucide="upload-cloud" class="w-5 h-5"></i> 開啟雲端上傳區
+                </a>
+              </div>
+            </div>
+          `;
+        }
+
+        html = `
+          ${statusBar}
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden fade-in">
+            <div class="bg-emerald-600 p-6 text-white text-center relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
+              <h3 class="text-emerald-200 text-xs font-bold tracking-widest mb-2 uppercase">Stage C: Task</h3>
+              <h2 class="text-3xl font-black relative z-10 tracking-widest drop-shadow-md">${currentLocation.name}</h2>
             </div>
 
-            <div id="screen-end" class="hidden fade-in text-center py-12 space-y-6">
-                <span class="text-8xl">🏆</span><h2 class="text-3xl font-black text-green-700">任務完成！</h2>
-                <div class="bg-yellow-100 p-4 rounded-xl text-yellow-800 font-medium">完成 10 關！請立刻帶著手機<strong class="text-red-600">回到班上</strong>！</div>
+            <div class="p-6 space-y-6">
+              <div class="space-y-3">
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-inner">
+                  <span class="bg-emerald-600 text-white text-xs font-black px-2 py-1 rounded mb-2 inline-block shadow-sm">Academic</span>
+                  <p class="text-slate-800 font-bold leading-relaxed">${currentTaskData.acad}</p>
+                </div>
+                <input id="acadInput" type="text" placeholder="請輸入學術題答案..." class="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-emerald-500 focus:bg-emerald-50 outline-none font-bold text-slate-700 transition-colors" autocomplete="off">
+              </div>
+
+              ${obsHtml}
+              ${uploadHtml}
+
+              <div class="flex justify-between text-xs text-slate-400 font-bold px-1 items-center">
+                <span>目前得分倍率：<span id="scoreMultiplier">10 分</span></span>
+                <span class="text-red-500 bg-red-50 px-2 py-1 rounded-md hidden" id="mistakeBadge">已答錯 <span id="mistakeCounter">0</span> 次</span>
+              </div>
+              
+              <div id="error-container"></div>
+
+              <button onclick="handleTaskSubmit()" class="w-full py-4 bg-emerald-600 text-white rounded-xl font-black shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:-translate-y-0.5 transition-all text-lg">
+                提交解答
+              </button>
             </div>
-        </main>
-    </div>
+          </div>
+        `;
+      }
+      else if (phase === 'stage_d') {
+        html = `
+          ${statusBar}
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden zoom-in">
+            <div class="bg-teal-600 p-6 text-center">
+               <i data-lucide="check-circle" class="w-16 h-16 text-teal-200 mx-auto mb-2 drop-shadow-md"></i>
+               <h3 class="text-teal-100 text-sm font-bold tracking-widest mb-1 uppercase">Stage D: Success</h3>
+               <h2 class="text-3xl font-black text-white">解鎖成功！</h2>
+            </div>
+            <div class="p-5 space-y-4">
+              <p class="text-center font-bold text-slate-600 bg-slate-50 py-2 rounded-lg">
+                成功解鎖：<span class="text-teal-600">${currentLocation.name}</span>
+              </p>
+              
+              <div class="relative border-4 border-slate-100 rounded-xl overflow-hidden shadow-inner bg-slate-200" style="min-height: 250px;">
+                <img src="武陵教室圖.jpg" alt="校園地圖" class="w-full h-auto object-contain" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div class=\\'absolute inset-0 flex items-center justify-center\\'><span class=\\'text-slate-500 font-bold text-sm\\'>請將 [武陵教室圖.jpg] 置於根目錄以顯示地圖</span></div>';">
+                
+                <div class="absolute z-10 flex flex-col items-center fade-in" style="top: ${currentLocation.coords.top}; left: ${currentLocation.coords.left}; transform: translate(-50%, -50%);">
+                  <div class="bg-red-500 text-white rounded-full p-1 shadow-lg shadow-red-500/50 relative">
+                    <i data-lucide="map-pin" class="w-6 h-6"></i>
+                    <div class="absolute top-0 right-0 -mr-1 -mt-1 w-3 h-3 bg-green-400 border-2 border-white rounded-full animate-ping"></div>
+                    <div class="absolute top-0 right-0 -mr-1 -mt-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                  </div>
+                  <span class="mt-1 bg-white/90 backdrop-blur text-slate-800 text-[10px] font-black px-2 py-0.5 rounded shadow-sm whitespace-nowrap border border-slate-200">
+                    您在這裡
+                  </span>
+                </div>
+              </div>
 
-    <script>
-        const stagesData = {
-            "L1": { location: "蘊真樓", riddle: "I am the newest and tallest landmark on campus. On my 6th floor, the stage is set for grand performances. Look up to find this artistic peak!", task: "【現場任務】請掃描 QR Code 完成閱讀測驗。<br>👉 密碼格式：兩題選項 (例: AB)", ansBase64: "QkQ=" },
-            "L2": { location: "合作社", riddle: "Hunger defines me. I am your best friend after PE class. I offer variety of snacks and drinks. Come find your savior!", task: "【現場任務】請掃描 QR Code 計算折扣金額。<br>👉 密碼格式：阿拉伯數字", ansBase64: "MTM1" },
-            "L3": { location: "美池", riddle: "Legend of the golden axe? Nymph surfacing from a lake? I am a tranquil spot where nature and stories reside.", task: "【現場任務】請掃描 QR Code 完成氣候圖判讀。", ansBase64: "576O5rGg" },
-            "L4": { location: "活動中心", riddle: "Swinging a badminton racket or chorus competition, this is your stage for sweat and applause.", task: "【現場任務】請掃描 QR Code 完成運動單字解謎。<br>👉 密碼格式：5個大寫字母", ansBase64: "VFJBQ0s=" },
-            "L5": { location: "教務處", riddle: "The brain of academic life. From schedules to grades, I manage your journey in Wu-Ling.", task: "【現場任務】請掃描 QR Code 完成文法糾錯。<br>👉 密碼格式：1個大寫字母", ansBase64: "Qw==" },
-            "L6_Sci": { location: "科教館", riddle: "Science is key. Experiments turn theory into reality. (GPS: 24.9878841, 121.2865047).", task: "【科學班】請掃描 QR Code 完成進階邏輯題。", ansBase64: "56eR5pWZ6aSo" },
-            "L6_Lang": { location: "科教館", riddle: "Science is key. Experiments turn theory into reality. (GPS: 24.9878841, 121.2865047).", task: "【語資班】請掃描 QR Code 完成語言學測驗。<br>👉 密碼格式：2個大寫字母", ansBase64: "Q0I=" },
-            "L7": { location: "圖書館", riddle: "I hold wisdom of thousands of scholars. Keep silent while seeking knowledge here.", task: "【現場任務】請掃描 QR Code 完成碩士城市題。", ansBase64: "5ZyW5pu46aSo" },
-            "L8": { location: "警衛室", riddle: "The first and last face you see. I guard the entrance and main gate 24/7.", task: "【現場任務】請掃描 QR Code 完成石碑典故題。", ansBase64: "6K2m6KGb5a6k" },
-            "L9": { location: "健康中心", riddle: "Your shield during the pandemic. If you feel ill or need a bandage, I am here.", task: "【現場任務】請掃描 QR Code 完成醫療單字題。<br>👉 密碼：3個大寫字母", ansBase64: "Q0FE" },
-            "L10": { location: "回收場", riddle: "Be a friend to Earth. Sort with care where small actions help the world breathe easier.", task: "【現場任務】掃描 QR Code 解題並拍照。<br>👉 先輸入密碼解答，再上傳照片！", isUpload: true, ansBase64: "Qw==" },
-            "L11": { location: "學務處", riddle: "I am the administrative heart. My walls tell stories of Wu-Ling's great achievements with medals and tablets.", task: "【現場任務】請掃描 QR Code 完成方位判讀任務。", ansBase64: "6IKy6I+B5qiT5YWl5Y+j" },
-            "L12": { location: "K書中心", riddle: "My name starts with an alphabet. Purely focused on studies. Come visit me as much as you can!", task: "【遊戲任務】請掃描 QR Code 完成 Wordle 並截圖上傳。", isUpload: true }
-        };
+              <button onclick="nextStation()" class="w-full py-4 bg-slate-800 text-white rounded-xl font-black shadow-lg hover:bg-slate-900 transition-colors text-lg mt-4 flex justify-center items-center gap-2">
+                ${currentStage < 9 ? '領取下一關謎語 <i data-lucide="chevron-right" class="w-5 h-5"></i>' : '查看最終成績 <i data-lucide="chevron-right" class="w-5 h-5"></i>'}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      else if (phase === 'result') {
+        const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
+        let scoreListHtml = '';
+        
+        scores.forEach(s => {
+          const mistakeHtml = s.mistakes > 0 
+            ? `<span class="text-[10px] text-red-500 bg-red-50 px-2 py-1 rounded-md font-bold border border-red-100">錯 ${s.mistakes} 次</span>`
+            : `<span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md font-bold border border-emerald-100">完美</span>`;
 
-        const routes = {
-            "Sci": { 1:["L11","L1","L8","L6_Sci","L10","L3","L12","L7","L2","L5"], 2:["L4","L11","L1","L8","L10","L6_Sci","L3","L12","L9","L7"], 3:["L2","L5","L11","L1","L8","L6_Sci","L10","L3","L12","L7"], 4:["L9","L11","L1","L8","L3","L10","L6_Sci","L12","L4","L5"], 5:["L7","L12","L3","L10","L6_Sci","L11","L1","L8","L2","L4"], 6:["L6_Sci","L12","L5","L3","L8","L11","L1","L10","L2","L7"] },
-            "Lang": { 1:["L4","L11","L1","L8","L6_Lang","L10","L3","L12","L7","L5"], 2:["L7","L12","L3","L10","L6_Lang","L5","L11","L1","L8","L2"], 3:["L9","L2","L11","L1","L8","L6_Lang","L10","L3","L12","L7"], 4:["L12","L3","L10","L6_Lang","L1","L8","L11","L5","L4","L2"] }
-        };
+          scoreListHtml += `
+            <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-100 shadow-sm text-sm">
+              <span class="text-slate-700 font-bold flex items-center gap-2">
+                <span class="bg-indigo-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs">${s.stage}</span> 
+                ${s.location}
+              </span>
+              <div class="flex items-center gap-3">
+                ${mistakeHtml}
+                <span class="font-black text-slate-800 w-10 text-right text-base">${s.score} 分</span>
+              </div>
+            </div>
+          `;
+        });
 
-        let currentRoute = [], currentIndex = 0, resolveModal = null;
-        const TOTAL_STAGES = 10;
+        html = `
+          <div class="bg-white rounded-2xl shadow-xl border border-indigo-200 p-6 space-y-6 text-center zoom-in">
+            <div class="relative inline-block">
+              <div class="absolute inset-0 bg-yellow-400 blur-xl opacity-50 rounded-full animate-pulse"></div>
+              <i data-lucide="award" class="w-28 h-28 text-yellow-500 relative z-10 drop-shadow-xl mx-auto"></i>
+            </div>
+            <div>
+              <h2 class="text-3xl font-black text-slate-800 tracking-wide">闖關大成功！</h2>
+              <p class="text-slate-500 font-bold mt-2">您已完成 10 個關卡，快回教室兌換獎品！</p>
+            </div>
+            
+            <div class="bg-slate-50 rounded-2xl p-5 border-2 border-slate-100 text-left shadow-inner">
+              <div class="flex justify-between items-center mb-4 border-b-2 border-slate-200 pb-3">
+                <span class="font-bold text-slate-500">挑戰隊伍</span>
+                <span class="font-black text-indigo-700 text-xl bg-indigo-50 px-3 py-1 rounded-lg">${classId}班 第${groupId}組</span>
+              </div>
+              <div class="flex justify-between items-center mb-4 border-b-2 border-slate-200 pb-3">
+                <span class="font-bold text-slate-500">隊伍總積分</span>
+                <span class="text-5xl font-black text-indigo-600 drop-shadow-sm flex items-baseline gap-1">
+                  ${totalScore} <span class="text-lg text-indigo-400 font-bold">分</span>
+                </span>
+              </div>
+              
+              <div class="max-h-60 overflow-y-auto pr-2 space-y-3 mt-4 scrollbar-hide">
+                ${scoreListHtml}
+              </div>
+            </div>
 
-        function startGame(type, num) {
-            currentRoute = routes[type][num];
-            document.getElementById('screen-home').classList.add('hidden');
-            document.getElementById('screen-game').classList.remove('hidden');
-            document.getElementById('progress-bar-container').classList.remove('hidden');
-            document.getElementById('progress-text').classList.remove('hidden');
-            renderStage();
-        }
+            <p class="text-white font-black bg-gradient-to-r from-indigo-500 to-purple-600 p-4 rounded-xl shadow-lg text-lg animate-bounce">
+              🏃‍♂️ 截圖此畫面並立刻回到教室！
+            </p>
+          </div>
+        `;
+      }
 
-        function renderStage() {
-            if(currentIndex >= TOTAL_STAGES) {
-                document.getElementById('screen-game').classList.add('hidden');
-                document.getElementById('screen-end').classList.remove('hidden');
-                updateProgress(TOTAL_STAGES);
-                return;
-            }
-            const data = stagesData[currentRoute[currentIndex]];
-            updateProgress(currentIndex);
-            document.getElementById('stage-riddle').innerHTML = data.riddle;
-            document.getElementById('stage-task').innerHTML = data.task;
-            document.getElementById('answer-input').value = "";
-            document.getElementById('upload-section').classList.add('hidden');
-            document.getElementById('input-section').classList.remove('hidden');
-            if(data.isUpload && !data.ansBase64) {
-                document.getElementById('input-section').classList.add('hidden');
-                document.getElementById('upload-section').classList.remove('hidden');
-            }
-        }
+      app.innerHTML = html;
 
-        function checkAnswer() {
-            const val = document.getElementById('answer-input').value.trim();
-            const data = stagesData[currentRoute[currentIndex]];
-            if(btoa(unescape(encodeURIComponent(val))) === data.ansBase64) {
-                if(data.isUpload) {
-                    showModal("答對了！", "請繼續完成拍照上傳任務。", "success").then(() => {
-                        document.getElementById('input-section').classList.add('hidden');
-                        document.getElementById('upload-section').classList.remove('hidden');
-                    });
-                } else {
-                    showModal("答對了！", "前往下一關！", "success").then(() => { currentIndex++; renderStage(); });
-                }
-            } else { showModal("答案錯誤", "請再試一次！", "error"); }
-        }
+      // 初始化顯示錯誤次數徽章 (如果大於0)
+      if (phase === 'stage_c' && mistakes > 0) {
+        document.getElementById('mistakeBadge').classList.remove('hidden');
+        document.getElementById('mistakeCounter').innerText = mistakes;
+      }
 
-        function handleFileUpload(input) {
-            if(input.files && input.files[0]) {
-                showModal("上傳成功！", "進入下一關！", "success").then(() => { currentIndex++; renderStage(); });
-            }
-        }
+      // 初始化所有 Lucide icons
+      lucide.createIcons();
+    }
 
-        function updateProgress(i) {
-            document.getElementById('progress-bar').style.width = (i/TOTAL_STAGES)*100 + '%';
-            document.getElementById('progress-text').innerText = `${i} / ${TOTAL_STAGES}`;
-        }
-
-        function showModal(title, msg, type) {
-            return new Promise(r => {
-                document.getElementById('modal-title').innerText = title;
-                document.getElementById('modal-msg').innerHTML = msg;
-                document.getElementById('modal-icon').innerText = type === "success" ? "✅" : "❌";
-                document.getElementById('msg-modal').classList.remove('hidden');
-                resolveModal = r;
-            });
-        }
-
-        function closeModal() {
-            document.getElementById('msg-modal').classList.add('hidden');
-            if(resolveModal) { resolveModal(); resolveModal = null; }
-        }
-    </script>
+    // 啟動應用
+    render();
+  </script>
 </body>
 </html>
