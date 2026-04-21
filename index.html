@@ -1,0 +1,181 @@
+<!-- 地點名稱已更新：育菁樓入口 -> 學務處 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>武陵高中 - 英文課校園闖關</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0fdf4; -webkit-tap-highlight-color: transparent; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body class="text-gray-800 antialiased">
+    <div id="msg-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-2xl p-6 m-4 max-w-sm w-full text-center">
+            <div id="modal-icon" class="text-5xl mb-4">✅</div>
+            <h3 id="modal-title" class="text-xl font-bold mb-2">標題</h3>
+            <p id="modal-msg" class="text-gray-600 mb-6"></p>
+            <button onclick="closeModal()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-green-700">確定</button>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto bg-white min-h-screen shadow-xl relative flex flex-col">
+        <header class="bg-green-700 text-white p-4 shadow-md z-10 flex items-center justify-between">
+            <h1 class="text-lg font-black tracking-wider">🏃‍♂️ 武陵校園探險</h1>
+            <div id="progress-text" class="text-sm font-bold bg-green-800 px-3 py-1 rounded-full hidden">0 / 10</div>
+        </header>
+        <div id="progress-bar-container" class="w-full bg-gray-200 h-2 hidden">
+            <div id="progress-bar" class="bg-yellow-400 h-2 transition-all duration-500" style="width: 0%;"></div>
+        </div>
+
+        <main class="flex-1 p-5 overflow-y-auto">
+            <div id="screen-home" class="fade-in space-y-6 text-center">
+                <div class="py-6"><span class="text-6xl">🏫</span><h2 class="text-2xl font-bold mt-2">103 & 120 班闖關</h2></div>
+                <div class="space-y-4">
+                    <div class="bg-green-50 rounded-xl p-4 border border-green-200">
+                        <h3 class="font-bold text-green-800 mb-3 border-b border-green-200 pb-2">🧪 科學班 (共6組)</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <script>for(let i=1;i<=6;i++) document.write(`<button onclick="startGame('Sci', ${i})" class="bg-white border border-gray-300 rounded-lg py-2 font-bold text-gray-700 hover:text-green-600">第 ${i} 組</button>`)</script>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                        <h3 class="font-bold text-blue-800 mb-3 border-b border-blue-200 pb-2">🗣️ 語資班 (共4組)</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <script>for(let i=1;i<=4;i++) document.write(`<button onclick="startGame('Lang', ${i})" class="bg-white border border-gray-300 rounded-lg py-2 font-bold text-gray-700 hover:text-blue-600">第 ${i} 組</button>`)</script>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-game" class="hidden space-y-5 fade-in">
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                    <h3 class="font-bold text-yellow-800 flex items-center"><span class="mr-2">📍</span>下一站謎語</h3>
+                    <p id="stage-riddle" class="text-gray-700 italic font-serif leading-relaxed mt-2"></p>
+                </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm relative mt-6">
+                    <div class="absolute -top-3 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">任務</div>
+                    <p id="stage-task" class="text-gray-800 font-medium mt-3"></p>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 p-4 rounded-xl shadow-inner mt-4">
+                    <div id="input-section" class="space-y-3">
+                        <input type="text" id="answer-input" class="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="輸入解答...">
+                        <button onclick="checkAnswer()" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md">送出答案 🚀</button>
+                    </div>
+                    <div id="upload-section" class="hidden space-y-3">
+                        <label class="w-full bg-blue-50 text-blue-600 border-2 border-dashed border-blue-300 font-bold py-8 rounded-lg cursor-pointer flex flex-col items-center">
+                            <span class="text-3xl mb-2">📸</span><span>點擊上傳任務照片</span>
+                            <input type="file" id="file-upload" onchange="handleFileUpload(this)">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-end" class="hidden fade-in text-center py-12 space-y-6">
+                <span class="text-8xl">🏆</span><h2 class="text-3xl font-black text-green-700">任務完成！</h2>
+                <div class="bg-yellow-100 p-4 rounded-xl text-yellow-800 font-medium">完成 10 關！請立刻帶著手機<strong class="text-red-600">回到班上</strong>！</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const stagesData = {
+            "L1": { location: "蘊真樓", riddle: "I am the newest and tallest landmark on campus. On my 6th floor, the stage is set for grand performances. Look up to find this artistic peak!", task: "【現場任務】請掃描 QR Code 完成閱讀測驗。<br>👉 密碼格式：兩題選項 (例: AB)", ansBase64: "QkQ=" },
+            "L2": { location: "合作社", riddle: "Hunger defines me. I am your best friend after PE class. I offer variety of snacks and drinks. Come find your savior!", task: "【現場任務】請掃描 QR Code 計算折扣金額。<br>👉 密碼格式：阿拉伯數字", ansBase64: "MTM1" },
+            "L3": { location: "美池", riddle: "Legend of the golden axe? Nymph surfacing from a lake? I am a tranquil spot where nature and stories reside.", task: "【現場任務】請掃描 QR Code 完成氣候圖判讀。", ansBase64: "576O5rGg" },
+            "L4": { location: "活動中心", riddle: "Swinging a badminton racket or chorus competition, this is your stage for sweat and applause.", task: "【現場任務】請掃描 QR Code 完成運動單字解謎。<br>👉 密碼格式：5個大寫字母", ansBase64: "VFJBQ0s=" },
+            "L5": { location: "教務處", riddle: "The brain of academic life. From schedules to grades, I manage your journey in Wu-Ling.", task: "【現場任務】請掃描 QR Code 完成文法糾錯。<br>👉 密碼格式：1個大寫字母", ansBase64: "Qw==" },
+            "L6_Sci": { location: "科教館", riddle: "Science is key. Experiments turn theory into reality. (GPS: 24.9878841, 121.2865047).", task: "【科學班】請掃描 QR Code 完成進階邏輯題。", ansBase64: "56eR5pWZ6aSo" },
+            "L6_Lang": { location: "科教館", riddle: "Science is key. Experiments turn theory into reality. (GPS: 24.9878841, 121.2865047).", task: "【語資班】請掃描 QR Code 完成語言學測驗。<br>👉 密碼格式：2個大寫字母", ansBase64: "Q0I=" },
+            "L7": { location: "圖書館", riddle: "I hold wisdom of thousands of scholars. Keep silent while seeking knowledge here.", task: "【現場任務】請掃描 QR Code 完成碩士城市題。", ansBase64: "5ZyW5pu46aSo" },
+            "L8": { location: "警衛室", riddle: "The first and last face you see. I guard the entrance and main gate 24/7.", task: "【現場任務】請掃描 QR Code 完成石碑典故題。", ansBase64: "6K2m6KGb5a6k" },
+            "L9": { location: "健康中心", riddle: "Your shield during the pandemic. If you feel ill or need a bandage, I am here.", task: "【現場任務】請掃描 QR Code 完成醫療單字題。<br>👉 密碼：3個大寫字母", ansBase64: "Q0FE" },
+            "L10": { location: "回收場", riddle: "Be a friend to Earth. Sort with care where small actions help the world breathe easier.", task: "【現場任務】掃描 QR Code 解題並拍照。<br>👉 先輸入密碼解答，再上傳照片！", isUpload: true, ansBase64: "Qw==" },
+            "L11": { location: "學務處", riddle: "I am the administrative heart. My walls tell stories of Wu-Ling's great achievements with medals and tablets.", task: "【現場任務】請掃描 QR Code 完成方位判讀任務。", ansBase64: "6IKy6I+B5qiT5YWl5Y+j" },
+            "L12": { location: "K書中心", riddle: "My name starts with an alphabet. Purely focused on studies. Come visit me as much as you can!", task: "【遊戲任務】請掃描 QR Code 完成 Wordle 並截圖上傳。", isUpload: true }
+        };
+
+        const routes = {
+            "Sci": { 1:["L11","L1","L8","L6_Sci","L10","L3","L12","L7","L2","L5"], 2:["L4","L11","L1","L8","L10","L6_Sci","L3","L12","L9","L7"], 3:["L2","L5","L11","L1","L8","L6_Sci","L10","L3","L12","L7"], 4:["L9","L11","L1","L8","L3","L10","L6_Sci","L12","L4","L5"], 5:["L7","L12","L3","L10","L6_Sci","L11","L1","L8","L2","L4"], 6:["L6_Sci","L12","L5","L3","L8","L11","L1","L10","L2","L7"] },
+            "Lang": { 1:["L4","L11","L1","L8","L6_Lang","L10","L3","L12","L7","L5"], 2:["L7","L12","L3","L10","L6_Lang","L5","L11","L1","L8","L2"], 3:["L9","L2","L11","L1","L8","L6_Lang","L10","L3","L12","L7"], 4:["L12","L3","L10","L6_Lang","L1","L8","L11","L5","L4","L2"] }
+        };
+
+        let currentRoute = [], currentIndex = 0, resolveModal = null;
+        const TOTAL_STAGES = 10;
+
+        function startGame(type, num) {
+            currentRoute = routes[type][num];
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('progress-bar-container').classList.remove('hidden');
+            document.getElementById('progress-text').classList.remove('hidden');
+            renderStage();
+        }
+
+        function renderStage() {
+            if(currentIndex >= TOTAL_STAGES) {
+                document.getElementById('screen-game').classList.add('hidden');
+                document.getElementById('screen-end').classList.remove('hidden');
+                updateProgress(TOTAL_STAGES);
+                return;
+            }
+            const data = stagesData[currentRoute[currentIndex]];
+            updateProgress(currentIndex);
+            document.getElementById('stage-riddle').innerHTML = data.riddle;
+            document.getElementById('stage-task').innerHTML = data.task;
+            document.getElementById('answer-input').value = "";
+            document.getElementById('upload-section').classList.add('hidden');
+            document.getElementById('input-section').classList.remove('hidden');
+            if(data.isUpload && !data.ansBase64) {
+                document.getElementById('input-section').classList.add('hidden');
+                document.getElementById('upload-section').classList.remove('hidden');
+            }
+        }
+
+        function checkAnswer() {
+            const val = document.getElementById('answer-input').value.trim();
+            const data = stagesData[currentRoute[currentIndex]];
+            if(btoa(unescape(encodeURIComponent(val))) === data.ansBase64) {
+                if(data.isUpload) {
+                    showModal("答對了！", "請繼續完成拍照上傳任務。", "success").then(() => {
+                        document.getElementById('input-section').classList.add('hidden');
+                        document.getElementById('upload-section').classList.remove('hidden');
+                    });
+                } else {
+                    showModal("答對了！", "前往下一關！", "success").then(() => { currentIndex++; renderStage(); });
+                }
+            } else { showModal("答案錯誤", "請再試一次！", "error"); }
+        }
+
+        function handleFileUpload(input) {
+            if(input.files && input.files[0]) {
+                showModal("上傳成功！", "進入下一關！", "success").then(() => { currentIndex++; renderStage(); });
+            }
+        }
+
+        function updateProgress(i) {
+            document.getElementById('progress-bar').style.width = (i/TOTAL_STAGES)*100 + '%';
+            document.getElementById('progress-text').innerText = `${i} / ${TOTAL_STAGES}`;
+        }
+
+        function showModal(title, msg, type) {
+            return new Promise(r => {
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-msg').innerHTML = msg;
+                document.getElementById('modal-icon').innerText = type === "success" ? "✅" : "❌";
+                document.getElementById('msg-modal').classList.remove('hidden');
+                resolveModal = r;
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('msg-modal').classList.add('hidden');
+            if(resolveModal) { resolveModal(); resolveModal = null; }
+        }
+    </script>
+</body>
+</html>
