@@ -52,14 +52,22 @@
 
   <script>
     // ==========================================
-    // 🔐 防作弊系統：Base64 驗證庫
+    // 🔐 防作弊系統：全新解碼驗證庫 (完美支援中文)
     // ==========================================
     const checkBase64Match = (input, validBase64Array) => {
       if (!input) return false;
       const normalized = input.replace(/[\s,，、。<>〈〉《》()（）"”'']/g, '').toLowerCase();
-      // 使用支援中文字元的 base64 編碼方式
-      const encoded = btoa(unescape(encodeURIComponent(normalized)));
-      return validBase64Array.includes(encoded) || encoded === "cGFzcw=="; // 測試用 pass
+      if (normalized === "pass") return true; // 老師測試專用超級密碼
+
+      return validBase64Array.some(base64Str => {
+        try {
+          // 直接將資料庫內的 Base64 解碼回純文字，進行精準比對
+          const decoded = decodeURIComponent(atob(base64Str));
+          return decoded === normalized;
+        } catch(e) {
+          return false;
+        }
+      });
     };
 
     // ==========================================
@@ -96,8 +104,8 @@
         id: "L05", name: "教務處", coords: { top: "65%", left: "25%" }, verifyKeyBase64: ["bDA1"],
         riddle: "I am the brain behind your academic life. From your class schedules to your final grades, I manage the most important documents of your journey in Wu-Ling. Visit me if you need help with your studies!",
         tasks: { 
-          "103": { acad: "【英文】10 年級複習 (with+O+O.C.) 句型解答：", acadAns: ["Yw=="], obs: null },
-          "120": { acad: "【英文】10 年級複習 (with+O+O.C.) 句型解答：", acadAns: ["Yw=="], obs: null } 
+          "103": { acad: "【英文】10 年級複習 (with+O+O.C.) 句型解答：", acadAns: ["Yw=="], obs: "【實地觀察】教務處牌子底下的門左手邊有一張115年語言能力認證的海報，請問是什麼語言？", obsAns: ["JUU1JUFFJUEyJUU4JUFBJTlE", "JUU1JUFFJUEyJUU1JUFFJUI2JUU4JUFBJTlE", "JUU1JUFFJUEyJUU1JUFFJUI2JUU4JUE5JUIx"] },
+          "120": { acad: "【英文】10 年級複習 (with+O+O.C.) 句型解答：", acadAns: ["Yw=="], obs: "【實地觀察】教務處牌子底下的門左手邊有一張115年語言能力認證的海報，請問是什麼語言？", obsAns: ["JUU1JUFFJUEyJUU4JUFBJTlE", "JUU1JUFFJUEyJUU1JUFFJUI2JUU4JUFBJTlE", "JUU1JUFFJUEyJUU1JUFFJUI2JUU4JUE5JUIx"] } 
         }
       },
       "L06": { 
