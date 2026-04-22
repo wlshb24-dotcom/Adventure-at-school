@@ -57,7 +57,8 @@
     const checkBase64Match = (input, validBase64Array) => {
       if (!input) return false;
       const normalized = input.replace(/[\s,，、。<>〈〉《》()（）"”'']/g, '').toLowerCase();
-      const encoded = btoa(encodeURIComponent(normalized));
+      // 使用支援中文字元的 base64 編碼方式
+      const encoded = btoa(unescape(encodeURIComponent(normalized)));
       return validBase64Array.includes(encoded) || encoded === "cGFzcw=="; // 測試用 pass
     };
 
@@ -115,7 +116,10 @@
       "L08": { 
         id: "L08", name: "警衛室", coords: { top: "80%", left: "45%" }, verifyKeyBase64: ["bDA4"],
         riddle: "I am the first face you see in the morning and the last one when you leave. I guard the entrance and keep the school safe 24/7. Find me at the main gate!",
-        tasks: { "103": { acad: "【國文】校園石碑典故解答 (請輸入完整課文名稱)：", acadAns: ["JUU3JThFJThCJUU3JUJFJUIyJUU0JUI5JThCJUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG", "JUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG"], obs: null }, "120": { acad: "【國文】校園石碑典故解答 (請輸入完整課文名稱)：", acadAns: ["JUU3JThFJThCJUU3JUJFJUIyJUU0JUI5JThCJUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG", "JUU4JTk4JUFEJUU0JUJBJUFEJUU5JTlCJTg2JUU1JUJBJThG"], obs: null } }
+        tasks: { 
+          "103": { acad: "【任務】Part 1 解答填寫於此，Part 2 拍照請上傳至雲端：(請輸入完整課文名稱)", acadAns: ["546L576y5LmL6Jit5Lqt6ZuG5bqP", "6Jit5Lqt6ZuG5bqP"], obs: null }, 
+          "120": { acad: "【任務】Part 1 解答填寫於此，Part 2 拍照請上傳至雲端：(請輸入完整課文名稱)", acadAns: ["546L576y5LmL6Jit5Lqt6ZuG5bqP", "6Jit5Lqt6ZuG5bqP"], obs: null } 
+        }
       },
       "L09": { 
         id: "L09", name: "健康中心", coords: { top: "70%", left: "20%" }, verifyKeyBase64: ["bDA5"],
